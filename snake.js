@@ -1,3 +1,84 @@
+class MatrixBackground {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@!%^&*()';
+                this.drops = [];
+                this.fontSize = 18;
+                this.initializeDrops();
+            }
+
+            initializeDrops() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.columns = Math.floor(this.canvas.width / this.fontSize);
+                this.drops = [];
+                
+                for (let i = 0; i < this.columns; i++) {
+                    this.drops[i] = {
+                        y: Math.random() * -this.canvas.height,
+                        speed: Math.random() * 3 + 1,
+                        characters: [],
+                        currentChar: this.characters.charAt(Math.floor(Math.random() * this.characters.length))
+                    };
+                }
+            }
+
+            draw() {
+                // Полупрозрачный черный фон для эффекта постепенного исчезновения
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                this.ctx.font = `${this.fontSize}px monospace`;
+
+                for (let i = 0; i < this.drops.length; i++) {
+                    const drop = this.drops[i];
+                    const x = i * this.fontSize;
+
+                    // Рисуем основной символ
+                    this.ctx.fillStyle = '#0F0';
+                    this.ctx.fillText(drop.currentChar, x, drop.y);
+
+                    // Рисуем след из предыдущих символов
+                    for (let j = 0; j < drop.characters.length; j++) {
+                        const trailChar = drop.characters[j];
+                        const alpha = 1 - (j / drop.characters.length);
+                        this.ctx.fillStyle = `rgba(0, 255, 0, ${alpha * 0.4})`;
+                        this.ctx.fillText(trailChar.char, x, trailChar.y);
+                    }
+
+                    // Обновляем позицию
+                    drop.y += drop.speed;
+
+                    // Добавляем текущий символ в след
+                    if (Math.random() > 0.8) {
+                        drop.characters.unshift({
+                            char: drop.currentChar,
+                            y: drop.y
+                        });
+
+                        if (drop.characters.length > 15) {
+                            drop.characters.pop();
+                        }
+                    }
+
+                    // Сбрасываем каплю когда уходит за экран
+                    if (drop.y > this.canvas.height) {
+                        drop.y = -this.fontSize;
+                        drop.currentChar = this.characters.charAt(Math.floor(Math.random() * this.characters.length));
+                        drop.speed = Math.random() * 3 + 1;
+                        if (drop.characters.length > 8) {
+                            drop.characters = drop.characters.slice(0, 8);
+                        }
+                    }
+                }
+            }
+
+            resize() {
+                this.initializeDrops();
+            }
+        }
+
 class Snake{
     constructor(x,y,size){
         this.x=x;
@@ -90,7 +171,7 @@ class Apple{
     }
 }
 
-const SNAKE_SIZE = 40;
+const SNAKE_SIZE = 50;
 var canvas=document.getElementById("canvas");
 var snake= new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
 
@@ -102,24 +183,23 @@ var tick;
 
 const BASE_SIZE = 400;
 let directionProcessedFrame = false;
+// Создаем матричный фон для всего body
+var matrixCanvas = document.getElementById("matrix-background");
+var matrixBackground = new MatrixBackground(matrixCanvas);
+
 
 function resizeCanvas() {
     const container = document.getElementById('game-container');
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    
-    const maxPossibleSize = Math.min(containerWidth, containerHeight);
+    const maxPossibleSize = Math.min(window.innerWidth * 0.8, window.innerHeight * 0.8);
     const cellSize = snake.size;
-    
     const gameSize = Math.floor(maxPossibleSize / cellSize) * cellSize;
     
     canvas.width = gameSize;
     canvas.height = gameSize;
     
-    canvas.style.width = gameSize + 'px';
-    canvas.style.height = gameSize + 'px';
-    
-    console.log(`Canvas size: ${canvas.width}x${canvas.height}, Display: ${gameSize}x${gameSize}`);
+    // Обновляем размер контейнера
+    container.style.width = gameSize + 'px';
+    container.style.height = gameSize + 'px';
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -128,6 +208,7 @@ window.onload = () => {
 };
 
 function initGame() {
+    matrixBackground.resize();
     resizeCanvas();
     apple = new Apple();
     snake = new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
@@ -148,8 +229,7 @@ function show(){
 }
 
 function update(){
-    directionProcessedThisFrame = false;
-    canvasContext.clearRect(0,0,canvas.width, canvas.height)
+    canvasContext.clearRect(0,0,canvas.width, canvas.height);
     snake.move();
     eatApple();
     if (snake.checkCollision()) {
@@ -177,26 +257,23 @@ function eatApple(){
     if (snake.tail[snake.tail.length-1].x==apple.x &&snake.tail[snake.tail.length-1].y==apple.y)
     {
         const lastSegment = snake.tail[snake.tail.length - 1];
-        console.log(snake);
-            console.log("X:"+lastSegment.x+" Y:"+lastSegment.y);
-            console.log(lastSegment);
         snake.tail.push({ x: lastSegment.x, y: lastSegment.y });
         apple=new Apple();
     }
 }
 
-function draw(){
-   createRect(0,0,canvas.width, canvas.height, "black");
-    createRect(0,0, canvas.width, canvas.height);
-   for(var i=0; i <snake.tail.length; i++){
-    createRect(snake.tail[i].x+2.5, snake.tail[i].y+2.5, snake.size-5, snake.size-5, "white");
-   }
+function draw() {
+    // Рисуем игровые объекты на черном фоне
+    for (var i = 0; i < snake.tail.length; i++) {
+        createRect(snake.tail[i].x + 2.5, snake.tail[i].y + 2.5, snake.size - 5, snake.size - 5, "white");
+    }
 
-   canvasContext.font = "20px Arial";
-   canvasContext.fillStyle="#00FF42";
-   var scoreCount=snake.tail.length-1;
-   canvasContext.fillText("Score: "+ scoreCount, canvas.width-100, 20);
-   createRect(apple.x, apple.y, apple.size, apple.size, apple.color);
+    canvasContext.font = "20px Arial";
+    canvasContext.fillStyle = "#0F0";
+    var scoreCount = snake.tail.length - 1;
+    canvasContext.fillText("Score: " + scoreCount, canvas.width - 100, 20);
+    
+    createRect(apple.x, apple.y, apple.size, apple.size, apple.color);
 }
 
 function createRect(x,y, width, height, color){
@@ -205,8 +282,7 @@ function createRect(x,y, width, height, color){
 }
 
 window.addEventListener("keydown", (event)=>{
-    // Предотвращаем стандартное поведение для стрелок и пробела
-    if ([" ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(event.key)) {
+    if ([" ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "a", "w", "d", "s", "ф", "ц", "в", "ы"].includes(event.key)) {
         event.preventDefault();
     }
     
@@ -218,23 +294,23 @@ window.addEventListener("keydown", (event)=>{
             gameLoop();
         }
     }
-    // Обрабатываем направление только если оно еще не было обработано в этом кадре
-    else if (!directionProcessedThisFrame) {
-        if ((event.key== "ArrowLeft" || event.key.toLowerCase()== "a") && snake.rotateX!=1){
+    else{
+        if ((event.key== "ArrowLeft" || event.key.toLowerCase()== "a" || event.key.toLowerCase()== "ф") && snake.rotateX!=1){
             snake.setNextDirection(-1, 0);
-            directionProcessedThisFrame = true;
         }
-        else if ((event.key=="ArrowUp" || event.key.toLowerCase()== "w") && snake.rotateY!=1){
+        else if ((event.key=="ArrowUp" || event.key.toLowerCase()== "w" || event.key.toLowerCase()== "ц") && snake.rotateY!=1){
             snake.setNextDirection(0, -1);
-            directionProcessedThisFrame = true;
         }
-        else if ((event.key=="ArrowRight" || event.key.toLowerCase()== "d") && snake.rotateX!=-1){
+        else if ((event.key=="ArrowRight" || event.key.toLowerCase()== "d" || event.key.toLowerCase()== "в") && snake.rotateX!=-1){
             snake.setNextDirection(1, 0);
-            directionProcessedThisFrame = true;
         }
-        else if ((event.key=="ArrowDown" || event.key.toLowerCase()== "s") && snake.rotateY!=-1){
+        else if ((event.key=="ArrowDown" || event.key.toLowerCase()== "s" || event.key.toLowerCase()== "ы") && snake.rotateY!=-1){
             snake.setNextDirection(0, 1);
-            directionProcessedThisFrame = true;
         }
     }
+});
+
+window.addEventListener("resize", function() {
+    matrixBackground.resize();
+    resizeCanvas();
 });
