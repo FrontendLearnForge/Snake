@@ -74,6 +74,11 @@ class Snake{
         }
         return false; 
     }
+
+    isFieldFull() {
+        const maxCells = (canvas.width / this.size) * (canvas.height / this.size);
+        return this.tail.length >= maxCells;
+    }
 }
 
 class Apple{
@@ -94,6 +99,32 @@ class Apple{
                 break;
             }
         }
+    }
+}
+
+class HighScoreManager {
+    constructor() {
+        this.scores = this.loadScores();
+    }
+
+    loadScores() {
+        const saved = localStorage.getItem('snakeHighScores');
+        return saved ? JSON.parse(saved) : [];
+    }
+
+    saveScores() {
+        localStorage.setItem('snakeHighScores', JSON.stringify(this.scores));
+    }
+
+    addScore(name, score) {
+        this.scores.push({ name, score, date: new Date().toLocaleDateString() });
+        this.scores.sort((a, b) => b.score - a.score);
+        this.scores = this.scores.slice(0, 10);
+        this.saveScores();
+    }
+
+    getScores() {
+        return this.scores;
     }
 }
 
@@ -156,32 +187,174 @@ function update(){
     canvasContext.clearRect(0,0,canvas.width, canvas.height)
     snake.move();
     eatApple();
-    if (snake.checkCollision()) {
-        console.log("Игра окончена!");
-        alert("Это конец");
-    }
-    checkHitWall();
 
+    if (snake.checkCollision() || snake.isFieldFull()) {
+        endGame();
+        return;
+    }
+
+    checkHitWall();
+}
+
+function endGame() {
+    clearInterval(tick);
+    gameHasStart = false;
+    
+    const score = snake.tail.length - 1;
+    showGameOverScreen(score);
+}
+
+function showGameOverScreen(score) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-family: Arial, sans-serif;
+    `;
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: #333;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        max-width: 500px;
+        width: 80%;
+    `;
+
+    content.innerHTML = `
+        <h2>Игра Окончена!</h2>
+        <p>Ваш счет: ${score}</p>
+        ${snake.isFieldFull() ? '<p>🎉 Поздравляем! Вы заполнили всё поле! 🎉</p>' : '<p>Змейка столкнулась с собой</p>'}
+        <div>
+            <input type="text" id="playerName" placeholder="Введите ваше имя" style="padding: 10px; margin: 10px; width: 200px; font-size: 16px;">
+            <button onclick="saveScore()" style="padding: 10px 20px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Сохранить результат</button>
+        </div>
+        <button onclick="showHighScores()" style="padding: 10px 20px; margin: 5px; font-size: 16px; background: #2196F3; color: white; border: none; border-radius: 5px; cursor: pointer;">Таблица рекордов</button>
+        <button onclick="restartGame()" style="padding: 10px 20px; margin: 5px; font-size: 16px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer;">Новая игра</button>
+    `;
+
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+}
+window.saveScore = function() {
+    const nameInput = document.getElementById('playerName');
+    const name = nameInput.value.trim() || 'Игрок';
+    const score = snake.tail.length - 1;
+    
+    HighScoreManager.addScore(name, score);
+    
+    // Убираем overlay
+    document.body.removeChild(document.querySelector('div[style*="position: fixed"]'));
+    showHighScores();
+}
+
+window.showHighScores = function() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-family: Arial, sans-serif;
+    `;
+
+    const scores = highScoreManager.getScores();
+    let scoresHTML = '<h2>Таблица рекордов</h2>';
+    
+    if (scores.length === 0) {
+        scoresHTML += '<p>Пока нет рекордов</p>';
+    } else {
+        scoresHTML += '<ol style="text-align: left; max-height: 300px; overflow-y: auto;">';
+        scores.forEach((record, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            scoresHTML += `<li>${medal} ${record.name} - ${record.score} очков (${record.date})</li>`;
+        });
+        scoresHTML += '</ol>';
+    }
+
+    const content = document.createElement('div');
+    content.style.cssText = `
+        background: #333;
+        padding: 30px;
+        border-radius: 10px;
+        text-align: center;
+        max-width: 500px;
+        width: 80%;
+        max-height: 80vh;
+        overflow-y: auto;
+    `;
+
+    content.innerHTML = scoresHTML + `
+        <button onclick="restartGame()" style="padding: 10px 20px; margin: 10px; font-size: 16px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer;">Новая игра</button>
+        <button onclick="closeOverlay()" style="padding: 10px 20px; margin: 10px; font-size: 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">Закрыть</button>
+    `;
+
+    overlay.appendChild(content);
+    document.body.appendChild(overlay);
+}
+
+window.closeOverlay = function() {
+    const overlay = document.querySelector('div[style*="position: fixed"]');
+    if (overlay) {
+        document.body.removeChild(overlay);
+    }
+}
+
+window.restartGame = function() {
+    closeOverlay();
+    initGame();
 }
 
 function checkHitWall(){
-    var headTail=snake.tail[snake.tail.length-1]
-    if(headTail.x== -snake.size){
-        headTail.x=canvas.width-snake.size;
-    } else if(headTail.x== canvas.width){
-        headTail.x=0;
-    } else if(headTail.y==-snake.size){
-        headTail.y=canvas.height-snake.size
-    } else if(headTail.y==canvas.height){
-        headTail.y=0;
+    const head = snake.tail[snake.tail.length-1];
+    if(head.x < 0){
+        head.x = canvas.width - snake.size;
+    } else if(head.x >= canvas.width){
+        head.x = 0;
+    } else if(head.y < 0){
+        head.y = canvas.height - snake.size;
+    } else if(head.y >= canvas.height){
+        head.y = 0;
     }
 }
 
 function eatApple(){
-    if (snake.tail[snake.tail.length-1].x==apple.x && snake.tail[snake.tail.length-1].y==apple.y)
-    {
-        snake.grow();
-        apple=new Apple();
+    const head = snake.tail[snake.tail.length-1];
+    
+    let headX = head.x;
+    let headY = head.y;
+
+    const possibleHeadPositions = [
+        {x: headX, y: headY},
+        {x: headX - canvas.width, y: headY},
+        {x: headX + canvas.width, y: headY}, 
+        {x: headX, y: headY - canvas.height}, 
+        {x: headX, y: headY + canvas.height}  
+    ];
+    
+    for (let pos of possibleHeadPositions) {
+        if (pos.x === apple.x && pos.y === apple.y) {
+            snake.grow();
+            apple = new Apple();
+            break;
+        }
     }
 }
 
