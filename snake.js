@@ -66,10 +66,10 @@ class Snake{
     }
 
     checkCollision() {
-        const head = this.tail[0];
-        for (let i = 1; i < this.tail.length-1; i++) {
+        const head = this.tail[this.tail.length - 1];
+        for (let i = 0; i < this.tail.length - 1; i++) {
             if (head.x === this.tail[i].x && head.y === this.tail[i].y) {
-                return true
+                return true;
             }
         }
         return false; 
@@ -97,7 +97,7 @@ class Apple{
     }
 }
 
-const SNAKE_SIZE = 40;
+const SNAKE_SIZE = 50;
 var canvas=document.getElementById("canvas");
 var snake= new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
 
@@ -125,8 +125,6 @@ function resizeCanvas() {
     
     canvas.style.width = gameSize + 'px';
     canvas.style.height = gameSize + 'px';
-    
-    console.log(`Canvas size: ${canvas.width}x${canvas.height}, Display: ${gameSize}x${gameSize}`);
 }
 
 window.addEventListener('resize', resizeCanvas);
@@ -160,7 +158,7 @@ function update(){
     eatApple();
     if (snake.checkCollision()) {
         console.log("Игра окончена!");
-        // Логика окончания игры
+        alert("Это конец");
     }
     checkHitWall();
 
@@ -189,9 +187,22 @@ function eatApple(){
 
 function draw(){
    createRect(0,0,canvas.width, canvas.height, "black");
-    createRect(0,0, canvas.width, canvas.height);
-   for(var i=0; i <snake.tail.length; i++){
-    createRect(snake.tail[i].x+2.5, snake.tail[i].y+2.5, snake.size-5, snake.size-5, "white");
+   createRect(0,0, canvas.width, canvas.height);
+   
+   for(var i=0; i < snake.tail.length; i++){
+       let color = "white";
+       let sizeOffset = 2.5;
+       
+       if (i === snake.tail.length - 1) {
+           color = "#00FF00"; 
+           sizeOffset = 1;
+       }
+       else if (i === 0) {
+           color = "#9c9c9cff";
+       }
+       
+       createRect(snake.tail[i].x + sizeOffset, snake.tail[i].y + sizeOffset, 
+                 snake.size - (sizeOffset * 2), snake.size - (sizeOffset * 2), color);
    }
 
    canvasContext.font = "20px Arial";
