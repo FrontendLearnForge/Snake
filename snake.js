@@ -77,6 +77,7 @@ class Snake{
 
     isFieldFull() {
         const maxCells = (canvas.width / this.size) * (canvas.height / this.size);
+        console.log(maxCells+" "+this.tail.length);
         return this.tail.length >= maxCells;
     }
 }
@@ -84,18 +85,40 @@ class Snake{
 class Apple{
     constructor(){
         var isTouching;
+        let attempts = 0;
+        const maxCells = (canvas.width / snake.size) * (canvas.height / snake.size);
+        
+        if (snake.tail.length >= maxCells - 1) {
+            this.x = -100; 
+            this.y = -100;
+            this.color = "black";
+            this.size = 1;
+            return;
+        }
+        
         while(true){
-            isTouching=false;
-            this.x=Math.floor(Math.random()*canvas.width/snake.size)*snake.size;
-            this.y=Math.floor(Math.random()*canvas.height/snake.size)*snake.size;
-            for (var i=0; i<snake.tail.length;i++){
-                if (this.x==snake.tail[i].x && this.y==snake.tail[i].y){
-                    isTouching=true;
+            isTouching = false;
+            this.x = Math.floor(Math.random() * canvas.width / snake.size) * snake.size;
+            this.y = Math.floor(Math.random() * canvas.height / snake.size) * snake.size;
+            
+            for (var i = 0; i < snake.tail.length; i++){
+                if (this.x == snake.tail[i].x && this.y == snake.tail[i].y){
+                    isTouching = true;
+                    break;
                 }
             }
-            this.color="red";
-            this.size=snake.size;
+            
+            this.color = "red";
+            this.size = snake.size;
+            
             if(!isTouching){
+                break;
+            }
+            
+            attempts++;
+            if (attempts > 1000) {
+                this.x = -100;
+                this.y = -100;
                 break;
             }
         }
@@ -128,7 +151,9 @@ class HighScoreManager {
     }
 }
 
-const SNAKE_SIZE = 50;
+const highScoreManager = new HighScoreManager();
+
+const SNAKE_SIZE = 80;
 var canvas=document.getElementById("canvas");
 var snake= new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
 
@@ -174,7 +199,7 @@ function initGame() {
 
 
 function gameLoop(){
-    tick=setInterval(show, 2000/15) //15 - fps
+    tick=setInterval(show, 1000/10)
     gameHasStart=true;
 }
 
@@ -246,14 +271,14 @@ function showGameOverScreen(score) {
     overlay.appendChild(content);
     document.body.appendChild(overlay);
 }
+
 window.saveScore = function() {
     const nameInput = document.getElementById('playerName');
     const name = nameInput.value.trim() || 'Игрок';
     const score = snake.tail.length - 1;
     
-    HighScoreManager.addScore(name, score);
+    highScoreManager.addScore(name, score);
     
-    // Убираем overlay
     document.body.removeChild(document.querySelector('div[style*="position: fixed"]'));
     showHighScores();
 }
@@ -302,9 +327,7 @@ window.showHighScores = function() {
     `;
 
     content.innerHTML = scoresHTML + `
-        <button onclick="restartGame()" style="padding: 10px 20px; margin: 10px; font-size: 16px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer;">Новая игра</button>
-        <button onclick="closeOverlay()" style="padding: 10px 20px; margin: 10px; font-size: 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">Закрыть</button>
-    `;
+        <button onclick="restartGame()" style="padding: 10px 20px; margin: 10px; font-size: 16px; background: #FF9800; color: white; border: none; border-radius: 5px; cursor: pointer;">Новая игра</button>`;
 
     overlay.appendChild(content);
     document.body.appendChild(overlay);
@@ -314,6 +337,10 @@ window.closeOverlay = function() {
     const overlay = document.querySelector('div[style*="position: fixed"]');
     if (overlay) {
         document.body.removeChild(overlay);
+    }
+    const overlay2 = document.querySelector('div[style*="position: fixed"]');
+    if (overlay2) {
+        document.body.removeChild(overlay2);
     }
 }
 
@@ -391,7 +418,7 @@ function createRect(x,y, width, height, color){
 }
 
 window.addEventListener("keydown", (event)=>{
-    if ([" ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "a", "w", "d", "s", "ф", "ц", "в", "ы"].includes(event.key)) {
+    if ([" ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(event.key)) {
         event.preventDefault();
     }
     
