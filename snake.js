@@ -6,9 +6,20 @@ class Snake{
         this.tail=[{x:this.x, y:this.y}];
         this.rotateX=0;
         this.rotateY=1;
+        this.nextDirection=null;
     }
 
     move(){
+        if (this.nextDirection) {
+            const { rotateX, rotateY } = this.nextDirection;
+            
+            if (!(this.rotateX === -rotateX && this.rotateY === -rotateY)) {
+                this.rotateX = rotateX;
+                this.rotateY = rotateY;
+            }
+            this.nextDirection = null;
+        }
+
         var newRect;
         if(this.rotateX==1)
         {
@@ -41,6 +52,10 @@ class Snake{
 
          this.tail.shift();
          this.tail.push(newRect);
+    }
+
+    setNextDirection(rotateX, rotateY) {
+        this.nextDirection = { rotateX, rotateY };
     }
 
     checkCollision() {
@@ -86,7 +101,7 @@ var gameHasStart;
 var tick;
 
 const BASE_SIZE = 400;
-
+let directionProcessedFrame = false;
 
 function resizeCanvas() {
     const container = document.getElementById('game-container');
@@ -133,6 +148,7 @@ function show(){
 }
 
 function update(){
+    directionProcessedThisFrame = false;
     canvasContext.clearRect(0,0,canvas.width, canvas.height)
     snake.move();
     eatApple();
@@ -189,28 +205,36 @@ function createRect(x,y, width, height, color){
 }
 
 window.addEventListener("keydown", (event)=>{
-        if (event.key === " ") {
-            if (gameHasStart){
-                clearInterval(tick);
-                gameHasStart = false;
-            } else {
-                gameLoop();
-            }
+    // Предотвращаем стандартное поведение для стрелок и пробела
+    if ([" ", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+    }
+    
+    if (event.key === " ") {
+        if (gameHasStart){
+            clearInterval(tick);
+            gameHasStart = false;
+        } else {
+            gameLoop();
         }
-        else if ((event.key== "ArrowLeft" || event.key.toLowerCase()== "a") && snake.rotateX!=1){
-            snake.rotateX=-1;
-            snake.rotateY=0;
+    }
+    // Обрабатываем направление только если оно еще не было обработано в этом кадре
+    else if (!directionProcessedThisFrame) {
+        if ((event.key== "ArrowLeft" || event.key.toLowerCase()== "a") && snake.rotateX!=1){
+            snake.setNextDirection(-1, 0);
+            directionProcessedThisFrame = true;
         }
         else if ((event.key=="ArrowUp" || event.key.toLowerCase()== "w") && snake.rotateY!=1){
-            snake.rotateX=0;
-            snake.rotateY=-1;
+            snake.setNextDirection(0, -1);
+            directionProcessedThisFrame = true;
         }
         else if ((event.key=="ArrowRight" || event.key.toLowerCase()== "d") && snake.rotateX!=-1){
-            snake.rotateX=1;
-            snake.rotateY=0;
+            snake.setNextDirection(1, 0);
+            directionProcessedThisFrame = true;
         }
         else if ((event.key=="ArrowDown" || event.key.toLowerCase()== "s") && snake.rotateY!=-1){
-            snake.rotateX=0;
-            snake.rotateY=1;
+            snake.setNextDirection(0, 1);
+            directionProcessedThisFrame = true;
         }
-})
+    }
+});
