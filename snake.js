@@ -75,9 +75,9 @@ class Apple{
     }
 }
 
-const SNAKE_SIZE =20;
+const SNAKE_SIZE = 40;
 var canvas=document.getElementById("canvas");
-var snake= new Snake(20,20,20);
+var snake= new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
 
 var apple= new Apple();
 
@@ -85,8 +85,7 @@ var canvasContext=canvas.getContext('2d');
 var gameHasStart;
 var tick;
 
-// Базовый размер игрового поля (должен быть кратен размеру змейки)
-const BASE_SIZE = 400; // 400px / 20px = 20 клеток
+const BASE_SIZE = 400;
 
 
 function resizeCanvas() {
@@ -94,18 +93,14 @@ function resizeCanvas() {
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
     
-    // Вычисляем максимальный возможный размер, кратный размеру змейки
     const maxPossibleSize = Math.min(containerWidth, containerHeight);
     const cellSize = snake.size;
     
-    // Вычисляем размер канваса, кратный cellSize
     const gameSize = Math.floor(maxPossibleSize / cellSize) * cellSize;
     
-    // Устанавливаем размеры канваса
     canvas.width = gameSize;
     canvas.height = gameSize;
     
-    // Масштабируем контекст для сохранения пропорций
     canvas.style.width = gameSize + 'px';
     canvas.style.height = gameSize + 'px';
     
@@ -120,7 +115,7 @@ window.onload = () => {
 function initGame() {
     resizeCanvas();
     apple = new Apple();
-    snake = new Snake(20, 20, 20);
+    snake = new Snake(SNAKE_SIZE,SNAKE_SIZE,SNAKE_SIZE);
     if (!gameHasStart) {
         gameLoop();
     }
@@ -161,7 +156,7 @@ function checkHitWall(){
         headTail.y=0;
     }
 }
-//Сделать функцию синхронной и добавить возможность масштабировать игру в зависимости от экрана и сделать таблицу результатов
+
 function eatApple(){
     if (snake.tail[snake.tail.length-1].x==apple.x &&snake.tail[snake.tail.length-1].y==apple.y)
     {
@@ -181,7 +176,7 @@ function draw(){
     createRect(snake.tail[i].x+2.5, snake.tail[i].y+2.5, snake.size-5, snake.size-5, "white");
    }
 
-    canvasContext.font = "20px Arial";
+   canvasContext.font = "20px Arial";
    canvasContext.fillStyle="#00FF42";
    var scoreCount=snake.tail.length-1;
    canvasContext.fillText("Score: "+ scoreCount, canvas.width-100, 20);
@@ -198,7 +193,6 @@ window.addEventListener("keydown", (event)=>{
             if (gameHasStart){
                 clearInterval(tick);
                 gameHasStart = false;
-                console.log("Игра на паузе");
             } else {
                 gameLoop();
             }
